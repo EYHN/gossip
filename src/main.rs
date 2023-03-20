@@ -3,9 +3,10 @@ mod gossip;
 use crdts::CmRDT;
 use crdts::{map::Op as CrdtMapOp, MVReg, Map as CrdtMap, VClock};
 use gossip::{GossipNode, GossipSimulator};
-use rand::seq::SliceRandom;
 use std::sync::Mutex;
 use uuid::Uuid;
+
+use crate::gossip::GossipProtocolClient;
 
 type KvGossipPush = VClock<Uuid>;
 type KvGossipPull = Vec<CrdtMapOp<String, MVReg<String, Uuid>, Uuid>>;
@@ -141,15 +142,20 @@ fn main() {
 
     nodes[0].update("abc".to_string(), "efg".to_string());
 
-    let simulator = GossipSimulator { nodes: &nodes };
+    let simulator = GossipSimulator::new(
+        nodes
+            .into_iter()
+            .map(|n| GossipProtocolClient::new(n))
+            .collect(),
+    );
 
     simulator.round();
 
-    dbg!(nodes[0].get("abc".to_string()));
-    dbg!(nodes[1].get("abc".to_string()));
-    dbg!(nodes[2].get("abc".to_string()));
-    dbg!(nodes[3].get("abc".to_string()));
-    dbg!(nodes[4].get("abc".to_string()));
+    dbg!(simulator.clients[0].get("abc".to_string()));
+    dbg!(simulator.clients[1].get("abc".to_string()));
+    dbg!(simulator.clients[2].get("abc".to_string()));
+    dbg!(simulator.clients[3].get("abc".to_string()));
+    dbg!(simulator.clients[4].get("abc".to_string()));
 
     // // Initialize the state of the first node
     // nodes[0]
