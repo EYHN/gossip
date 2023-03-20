@@ -2,7 +2,7 @@ mod gossip;
 
 use crdts::CmRDT;
 use crdts::{map::Op as CrdtMapOp, MVReg, Map as CrdtMap, VClock};
-use gossip::GossipNode;
+use gossip::{GossipNode, GossipSimulator};
 use rand::seq::SliceRandom;
 use std::sync::Mutex;
 use uuid::Uuid;
@@ -35,6 +35,31 @@ struct KvNode {
     state: Mutex<KvState>,
 }
 
+impl KvNode {
+    fn update(&self, key: String, value: String) {
+        let mut state = self.state.lock().unwrap();
+
+        let ctx = state.data.len();
+        let op = state
+            .data
+            .update(key, ctx.derive_add_ctx(self.id), |v, ctx| {
+                v.write(value, ctx)
+            });
+        state.data.apply(op.clone());
+        state.ops.push(op);
+    }
+
+    fn get(&self, key: String) -> Option<Vec<String>> {
+        let state = self.state.lock().unwrap();
+
+        state
+            .data
+            .get(&key)
+            .val
+            .and_then(|item| Some(item.read().val))
+    }
+}
+
 impl GossipNode for KvNode {
     type Id = Uuid;
 
@@ -47,9 +72,9 @@ impl GossipNode for KvNode {
     }
 
     fn push(&self, target_clock: KvGossipPush) -> KvGossipPull {
-        let mut state = self.state.lock().unwrap();
+        let state = self.state.lock().unwrap();
         let current_clock = state.data.len().add_clock;
-        if current_clock < target_clock || current_clock.concurrent(&target_clock) {
+        if current_clock > target_clock || current_clock.concurrent(&target_clock) {
             state.ops_after(target_clock)
         } else {
             Vec::new()
@@ -105,48 +130,26 @@ impl GossipNode for KvNode {
 
 fn main() {
     let num_nodes = 5;
-    let rounds = 3;
 
     // Create nodes
-    // let nodes: Vec<_> = (0..num_nodes)
-    //     .map(|id| Node {
-    //         id,
-    //         state: Arc::new(Mutex::new(HashSet::new())),
-    //     })
-    //     .collect();
+    let nodes: Vec<_> = (0..num_nodes)
+        .map(|_| KvNode {
+            id: Uuid::new_v4(),
+            state: Mutex::new(Default::default()),
+        })
+        .collect();
 
-    let nodeA = KvNode {
-        id: Uuid::new_v4(),
-        state: Mutex::new(Default::default()),
-    };
+    nodes[0].update("abc".to_string(), "efg".to_string());
 
-    let nodeB = KvNode {
-        id: Uuid::new_v4(),
-        state: Mutex::new(Default::default()),
-    };
+    let simulator = GossipSimulator { nodes: &nodes };
 
-    nodeA.update("abc".to_string(), "efg".to_string());
+    simulator.round();
 
-    dbg!(nodeA.get("abc".to_string()));
-
-    nodeB.update("abc".to_string(), "eee".to_string());
-
-    nodeA.push_version(&nodeB);
-
-    dbg!(nodeB.get("abc".to_string()));
-
-    nodeB.push_version(&nodeA);
-    nodeA.push_version(&nodeB);
-
-    dbg!(nodeB.get("abc".to_string()));
-
-    nodeB.update("abc".to_string(), "hello".to_string());
-
-    nodeB.push_version(&nodeA);
-    nodeA.push_version(&nodeB);
-
-    dbg!(nodeA.get("abc".to_string()));
-    dbg!(nodeB.get("abc".to_string()));
+    dbg!(nodes[0].get("abc".to_string()));
+    dbg!(nodes[1].get("abc".to_string()));
+    dbg!(nodes[2].get("abc".to_string()));
+    dbg!(nodes[3].get("abc".to_string()));
+    dbg!(nodes[4].get("abc".to_string()));
 
     // // Initialize the state of the first node
     // nodes[0]

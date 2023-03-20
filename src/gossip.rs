@@ -10,27 +10,23 @@ pub trait GossipNode {
     fn pull(&self, msg: Self::PullMsg);
 }
 
-pub struct GossipClient {}
-
-impl GossipClient {}
-
-struct GossipSimulator<Node> {
-    nodes: Vec<Node>,
+pub struct GossipSimulator<'a, Node> {
+    pub nodes: &'a [Node],
 }
 
-impl<Node> GossipSimulator<Node>
+impl<'a, Node> GossipSimulator<'a, Node>
 where
     Node: GossipNode,
     Node::Id: Eq,
 {
-    fn round(&self) {
+    pub fn round(&self) {
         for node in self.nodes.iter() {
             let peer = Self::select_random_peer(&self.nodes);
             if node.id() == peer.id() {
                 continue;
             }
             let push_msg = node.prepare();
-            let pull_msg = node.push(push_msg);
+            let pull_msg = peer.push(push_msg);
             node.pull(pull_msg);
         }
     }
