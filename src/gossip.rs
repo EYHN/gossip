@@ -200,6 +200,11 @@ impl<Node: GossipNode> GossipSimulator<Node> {
                     from: msg.from_id.to_string(),
                     to: msg.to_id.to_string(),
                     progress: (self.time - msg.start) / (msg.end - msg.start),
+                    kind: match msg.msg {
+                        GossipMsg::Push(_) => "Push".to_string(),
+                        GossipMsg::Pull(_) => "Pull".to_string(),
+                        GossipMsg::PushPull(_, _) => "PushPull".to_string(),
+                    },
                 })
                 .collect(),
             clients: self
@@ -236,6 +241,7 @@ pub struct GossipSimulatorMessageDebug {
     pub from: String,
     pub to: String,
     pub progress: f64,
+    pub kind: String,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
