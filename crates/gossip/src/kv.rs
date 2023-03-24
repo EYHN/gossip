@@ -1,6 +1,5 @@
 use crdts::CmRDT;
 use crdts::{map::Op as CrdtMapOp, MVReg, Map as CrdtMap, VClock};
-use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Mutex;
 use uuid::Uuid;
@@ -107,11 +106,19 @@ impl GossipNode for KvNode {
 
     fn debug_state(&self) -> Option<serde_json::Value> {
         let state = self.state.lock().unwrap();
-        let items: HashMap<_, _> = state
-            .data
-            .iter()
-            .map(|item_ctx| (item_ctx.val.0.clone(), item_ctx.val.1.read().val.clone()))
-            .collect();
-        Some(serde_json::to_value(items).unwrap())
+        let mut map = serde_json::Map::new();
+
+        for item_ctx in state.data.iter() {
+            let mut item = item_ctx.val.1.read().val.clone();
+            map.insert(
+                item_ctx.val.0.clone(),
+                if item.len() == 1 {
+                    serde_json::to_value(std::mem::take(&mut item[0])).unwrap()
+                } else {
+                    serde_json::to_value(item).unwrap()
+                },
+            );
+        }
+        Some(serde_json::Value::Object(map))
     }
 }

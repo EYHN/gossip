@@ -3,7 +3,6 @@ use std::{
 };
 
 use rand::{seq::IteratorRandom, Rng};
-use uuid::Uuid;
 
 pub trait GossipNode {
     type Id: Eq + Clone + Debug + ToString;
@@ -97,9 +96,9 @@ struct GossipSimulatorMessage<Node: GossipNode> {
 
 #[derive(Debug, Clone)]
 pub struct GossipSimulatorOptions {
-    pub messageDelay: f64,
-    pub clientTimer: f64,
-    pub clientTimerRandom: f64,
+    pub message_delay: f64,
+    pub client_timer: f64,
+    pub client_timer_random: f64,
 }
 
 pub struct GossipSimulator<Node: GossipNode> {
@@ -122,7 +121,7 @@ impl<Node: GossipNode> GossipRuntime<Node> for GossipSimulator<Node> {
             to_id,
             msg,
             start: self.time,
-            end: self.time + self.options.messageDelay,
+            end: self.time + self.options.message_delay,
         });
     }
 }
@@ -183,8 +182,8 @@ impl<Node: GossipNode> GossipSimulator<Node> {
     ) -> (f64, f64) {
         let mut rng = rand::thread_rng();
         let time = rng.gen_range(
-            options.clientTimer - options.clientTimerRandom
-                ..options.clientTimer + options.clientTimerRandom,
+            options.client_timer - options.client_timer_random
+                ..options.client_timer + options.client_timer_random,
         );
         return (current_time, current_time + time);
     }
