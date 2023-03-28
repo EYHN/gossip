@@ -7,7 +7,8 @@ mod tests {
 
     use crate::{
         gossip::{
-            GossipProtocolClient, GossipProtocolOption, GossipSimulator, GossipSimulatorOptions,
+            GossipProtocolClient, GossipProtocolOption, GossipProtocolMode, GossipSimulator,
+            GossipSimulatorOptions,
         },
         kv::KvNode,
     };
@@ -23,7 +24,10 @@ mod tests {
 
         nodes[0].update("abc".to_string(), "efg".to_string());
 
-        let options = GossipProtocolOption { fanout: 1 };
+        let options = GossipProtocolOption {
+            fanout: 1,
+            mode: GossipProtocolMode::PushPull,
+        };
 
         let mut simulator = GossipSimulator::new(
             nodes

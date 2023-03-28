@@ -1,7 +1,7 @@
 {
   "scripts": {
     "build": "NODE_ENV=production webpack",
-    "serve": "webpack-dev-server",
+    "dev": "webpack-dev-server",
     "vercel-build": "./vercel-build.sh"
   },
   "devDependencies": {
@@ -22,7 +22,7 @@
     "@mui/icons-material": "^5.11.11",
     "@mui/material": "^5.11.14",
     "@pixi/filter-outline": "^5.2.0",
-    "@textea/json-viewer": "^2.15.0",
+    "@textea/json-viewer": "^2.16.0",
     "pixi.js": "^7.2.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

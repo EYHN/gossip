@@ -1,10 +1,11 @@
 use gossip::{
     gossip::{
-        GossipNode, GossipProtocolClient, GossipProtocolOption, GossipSimulator,
-        GossipSimulatorOptions,
+        GossipNode, GossipProtocolClient, GossipProtocolMode, GossipProtocolOption,
+        GossipSimulator, GossipSimulatorOptions,
     },
     kv::KvNode,
 };
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 
@@ -57,26 +58,46 @@ impl ExportedSimulator {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SimulatorOptions {
+    num_nodes: u32,
+    fanout: u32,
+    message_delay: f64,
+    client_timer: f64,
+    client_timer_random: f64,
+    protocol_mode: String,
+}
+
 #[wasm_bindgen]
-pub fn createSimulator() -> ExportedSimulator {
-    let num_nodes = 50;
+pub fn create_simulator(options: JsValue) -> ExportedSimulator {
+    let options = serde_wasm_bindgen::from_value::<SimulatorOptions>(options).unwrap();
+    let num_nodes = options.num_nodes;
 
     // Create nodes
     let nodes: Vec<_> = (0..num_nodes)
         .map(|_| KvNode::new(Uuid::new_v4()))
         .collect();
 
-    let options = GossipProtocolOption { fanout: 3 };
+    nodes[0].update("hello".to_string(), "world".to_string());
+
+    let protocol_options = GossipProtocolOption {
+        fanout: options.fanout,
+        mode: match options.protocol_mode.as_str() {
+            "pull" => GossipProtocolMode::PullOnly,
+            "pushpull" => GossipProtocolMode::PushPull,
+            _ => panic!("Unknown protocol mode"),
+        },
+    };
 
     let simulator = GossipSimulator::new(
         nodes
             .into_iter()
-            .map(|n| GossipProtocolClient::new(n, options.clone()))
+            .map(|n| GossipProtocolClient::new(n, protocol_options.clone()))
             .collect(),
         GossipSimulatorOptions {
-            message_delay: 1.0,
-            client_timer: 3.0,
-            client_timer_random: 1.0,
+            message_delay: options.message_delay,
+            client_timer: options.client_timer,
+            client_timer_random: options.client_timer_random,
         },
     );
 

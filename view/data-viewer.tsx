@@ -48,6 +48,7 @@ export const DataViewer = React.forwardRef<VirtuosoHandle, {
                     onChange={([k], _, v) => onUpdate?.(client.id, k.toString(), v + '')}
                     value={Object.fromEntries(simulator.debug_client(client.id).entries())}
                     style={{ flexGrow: 1 }}
+                    highlightUpdates
                   />
                 </Stack>
               </Card>

@@ -76,13 +76,13 @@ impl GossipNode for KvNode {
         self.state.lock().unwrap().data.len().add_clock
     }
 
-    fn push(&self, target_clock: KvGossipPush) -> KvGossipPull {
+    fn push(&self, target_clock: KvGossipPush) -> Option<KvGossipPull> {
         let state = self.state.lock().unwrap();
         let current_clock = state.data.len().add_clock;
         if current_clock > target_clock || current_clock.concurrent(&target_clock) {
-            state.ops_after(target_clock)
+            Some(state.ops_after(target_clock))
         } else {
-            Vec::new()
+            None
         }
     }
 

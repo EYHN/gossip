@@ -10,7 +10,7 @@ pub trait GossipNode {
     type PullMsg;
     fn id(&self) -> Self::Id;
     fn prepare(&self) -> Self::PushMsg;
-    fn push(&self, msg: Self::PushMsg) -> Self::PullMsg;
+    fn push(&self, msg: Self::PushMsg) -> Option<Self::PullMsg>;
     fn pull(&self, msg: Self::PullMsg);
     fn debug_hash(&self, _hasher: &mut impl Hasher) {}
     fn debug_state(&self) -> Option<serde_json::Value> {
@@ -21,7 +21,7 @@ pub trait GossipNode {
 pub enum GossipMsg<Node: GossipNode> {
     Push(Node::PushMsg),
     Pull(Node::PullMsg),
-    PushPull(Node::PushMsg, Node::PullMsg),
+    PushPull(Node::PushMsg, Option<Node::PullMsg>),
 }
 
 pub trait GossipRuntime<Node: GossipNode> {
@@ -33,6 +33,13 @@ pub trait GossipRuntime<Node: GossipNode> {
 #[derive(Debug, Clone)]
 pub struct GossipProtocolOption {
     pub fanout: u32,
+    pub mode: GossipProtocolMode,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GossipProtocolMode {
+    PullOnly,
+    PushPull,
 }
 
 pub struct GossipProtocolClient<Node: GossipNode> {
@@ -64,15 +71,26 @@ impl<Node: GossipNode> GossipProtocolClient<Node> {
 
     fn on_receive(&self, id: Node::Id, msg: GossipMsg<Node>, runtime: &impl GossipRuntime<Node>) {
         match msg {
-            GossipMsg::Push(push) => runtime.send(
-                self.id(),
-                id,
-                GossipMsg::PushPull(self.prepare(), self.push(push)),
-            ),
+            GossipMsg::Push(push) => match self.options.mode {
+                GossipProtocolMode::PullOnly => {
+                    if let Some(pull) = self.push(push) {
+                        runtime.send(self.id(), id, GossipMsg::Pull(pull))
+                    }
+                }
+                GossipProtocolMode::PushPull => runtime.send(
+                    self.id(),
+                    id,
+                    GossipMsg::PushPull(self.prepare(), self.push(push)),
+                ),
+            },
             GossipMsg::Pull(pull) => self.pull(pull),
             GossipMsg::PushPull(push, pull) => {
-                self.pull(pull);
-                runtime.send(self.id(), id, GossipMsg::Pull(self.push(push)))
+                if let Some(pull) = pull {
+                    self.pull(pull);
+                }
+                if let Some(pull) = self.push(push) {
+                    runtime.send(self.id(), id, GossipMsg::Pull(pull))
+                }
             }
         }
     }
