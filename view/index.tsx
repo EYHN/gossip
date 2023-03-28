@@ -161,6 +161,9 @@ rust
             `} />
               <Grid xs={12} sm={12} md={4} sx={{ padding: '16px', lineHeight: 1.6 }}>
                 <h3>Gossip + CRDT Simulator</h3>
+                <p>
+                  <a href="https://github.com/eyhn/gossip" target="_blank">Click here to Github repository</a>
+                </p>
                 <h4>Gossip Protocal</h4>
                 <p>
                   The <a href="https://en.wikipedia.org/wiki/Gossip_protocol" target="_blank">gossip protocol</a> is a
@@ -201,7 +204,7 @@ rust
                 </p>
               </Grid>
               <Grid xs={12} sm={6} md={4} sx={{ padding: '16px' }}>
-                <Stack spacing={2} direction="column">
+                <Stack spacing={2} direction="column" alignItems="end">
                   <Card variant="outlined" sx={{ maxWidth: '300px' }} >
                     <Stack
                       spacing={2}
